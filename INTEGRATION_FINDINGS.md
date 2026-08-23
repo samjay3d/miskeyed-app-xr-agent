@@ -248,3 +248,24 @@ SDK environment are exported into the job.
 **Boundary decision:** The Windows matrix leg now runs the standard
 `ilammy/msvc-dev-cmd` setup action before CMake configure. Linux remains
 unchanged, and both platforms continue through the identical CMake preset.
+# F-008 — Kit App Template must be the package authority (resolved)
+
+**Mismatch:** Archiving the located SDK root treats a developer SDK layout as a
+production package and bypasses Kit's extension dependency graph. It produces
+oversized artifacts and makes this repository responsible for unsafe file
+selection.
+
+**Resolution:** The pinned Kit App Template production revision
+`1b93a81c778d2387fe7b5288e0bcfdce66c2b239` pins Kit kernel
+`110.1.2+production`. CI materializes this app into KAT, makes the production
+`apps/miskeyed.xr.kit` the `repo_precache_exts` root, and delegates build,
+precache, fat packaging, and packaged-app testing to KAT. Release code only
+validates KAT's archive and writes the uvx-facing checksum manifest. It never
+selects or removes directories from the SDK.
+
+**Thin-package finding:** At this KAT revision, thin packaging excludes the Kit
+kernel and resolved extension caches. It is useful for deployments that already
+provide those dependencies, but is not a self-contained offline shared-runtime
+contract. The first user release therefore consumes KAT fat output. A future
+shared cache must be based on a supported Kit lock/resolution contract rather
+than a custom split of an SDK directory.

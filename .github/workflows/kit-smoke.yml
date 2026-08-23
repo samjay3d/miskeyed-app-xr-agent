@@ -1,125 +1,66 @@
-name: Kit PB 26h1 CI
+name: Kit App Template package
 
 on:
   push:
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
 
 env:
-  KIT_PRODUCTION_BRANCH: 26h1
-  KIT_SDK_VERSION: 110.1.2
+  # This KAT production commit pins kit-kernel 110.1.2+production for PB 26h1.
+  KIT_TEMPLATE_REVISION: 1b93a81c778d2387fe7b5288e0bcfdce66c2b239
 
 jobs:
-  kit-ci:
-    name: kit-ci (${{ matrix.platform }}, NGC PB 26h1)
+  kit-package:
+    name: kit-package (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
-            platform: linux-x86_64
-            resource: nvidia/omniverse/kit-sdk-linux-pb26h1
-            ngc_cli: https://ngc.nvidia.com/downloads/ngccli_linux.zip
-            ngc_cli_format: zip
-            ngc_executable: ngc
-            kit_executable: kit
-            kit_python: python/bin/python3
-          - os: windows-2022
-            platform: windows-x86_64
-            resource: nvidia/omniverse/kit-sdk-windows-pb26h1
-            ngc_cli: https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.49.0/files/ngccli_win_amd64.exe
-            ngc_cli_format: exe
-            ngc_executable: ngc.exe
-            kit_executable: kit.exe
-            kit_python: python/python.exe
+          - { os: ubuntu-22.04, platform: linux-x86_64, repo: repo.sh }
+          - { os: windows-2022, platform: windows-x86_64, repo: repo.bat }
     defaults:
       run:
         shell: bash
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install official NGC CLI
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Resolve application version
         run: |
-          curl --fail --location --retry 3 \
-            "${{ matrix.ngc_cli }}" \
-            --output "$RUNNER_TEMP/ngccli.${{ matrix.ngc_cli_format }}"
-          mkdir "$RUNNER_TEMP/ngc-cli"
-          if test '${{ matrix.ngc_cli_format }}' = zip; then
-            unzip -q "$RUNNER_TEMP/ngccli.zip" -d "$RUNNER_TEMP/ngc-cli"
-            ngc="$(find "$RUNNER_TEMP/ngc-cli" -type f -name '${{ matrix.ngc_executable }}' -print -quit)"
-          else
-            ngc="$RUNNER_TEMP/ngc-cli/${{ matrix.ngc_executable }}"
-            mv "$RUNNER_TEMP/ngccli.exe" "$ngc"
-          fi
-          test -n "$ngc"
-          chmod +x "$ngc"
-          echo "NGC_CLI=$ngc" >> "$GITHUB_ENV"
-          "$ngc" --version
-
-      - name: Download pinned Kit SDK PB 26h1 resource
-        env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_API_KEY }}
-          NGC_CLI_ORG: nvidia
-          NGC_CLI_TEAM: omniverse
+          version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+      - name: Materialize pinned Kit App Template project
         run: |
-          test -n "$NGC_CLI_API_KEY" || { echo "NGC_API_KEY secret is required"; exit 1; }
-          mkdir "$RUNNER_TEMP/ngc-download" "$RUNNER_TEMP/kit-sdk"
-          "$NGC_CLI" registry resource download-version \
-            "${{ matrix.resource }}:${KIT_SDK_VERSION}" \
-            --dest "$RUNNER_TEMP/ngc-download"
-          sdk_zip="$(find "$RUNNER_TEMP/ngc-download" -type f -name '*.zip' -print -quit)"
-          if test -n "$sdk_zip"; then
-            unzip -q "$sdk_zip" -d "$RUNNER_TEMP/kit-sdk"
-          else
-            cp -R "$RUNNER_TEMP/ngc-download"/. "$RUNNER_TEMP/kit-sdk/"
-          fi
-          echo "NGC_RESOURCE=${{ matrix.resource }}:${KIT_SDK_VERSION}"
-
-      - name: Locate and identify pinned Kit runtime
+          git clone https://github.com/NVIDIA-Omniverse/kit-app-template.git "$RUNNER_TEMP/kat"
+          git -C "$RUNNER_TEMP/kat" checkout "$KIT_TEMPLATE_REVISION"
+          python scripts/prepare_kit_template.py --template "$RUNNER_TEMP/kat" --version "$APP_VERSION"
+      - name: Build and resolve production extension closure
+        working-directory: ${{ runner.temp }}/kat
         run: |
-          echo "Downloaded SDK top-level layout:"
-          find "$RUNNER_TEMP/kit-sdk" -maxdepth 3 -mindepth 1 -print | sed -n '1,100p'
-          kit_executable="$(find "$RUNNER_TEMP/kit-sdk" -type f -name '${{ matrix.kit_executable }}' -print -quit)"
-          test -n "$kit_executable"
-          test -x "$kit_executable"
-          kit_runtime="$(dirname "$kit_executable")"
-          kit_python="$kit_runtime/${{ matrix.kit_python }}"
-          test -x "$kit_python"
-          kit_root="$kit_runtime"
-          if ! test -d "$kit_root/exts"; then kit_root="$(dirname "$kit_runtime")"; fi
-          echo "KIT_EXECUTABLE=$kit_executable" >> "$GITHUB_ENV"
-          echo "KIT_ROOT=$kit_root" >> "$GITHUB_ENV"
-          echo "KIT_PYTHON=$kit_python" >> "$GITHUB_ENV"
-          echo "KIT_PRODUCT_CONTRACT=NGC_PB_${KIT_PRODUCTION_BRANCH}"
-          "$kit_executable" --version || "$kit_executable" --help | head -40
-          "$kit_python" -c 'import platform,sys; print(sys.version); print(sys.executable); print(platform.platform(), platform.machine())'
-
-      - name: Stage app and install core with Kit Python
+          ./${{ matrix.repo }} build --release
+          ./${{ matrix.repo }} precache_exts
+      - name: Package with NVIDIA Kit App Template
+        working-directory: ${{ runner.temp }}/kat
+        run: ./${{ matrix.repo }} package --name "miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}"
+      - name: Validate exact fat package and create release manifest
         run: |
-          stage="$RUNNER_TEMP/miskeyed-stage"
-          mkdir -p "$stage/apps" "$stage/exts"
-          cp apps/miskeyed.xr.ci.kit "$stage/apps/"
-          cp -R exts/. "$stage/exts/"
-          prebundle="$stage/exts/miskeyed.xr.python_deps/pip_prebundle"
-          "$KIT_PYTHON" -m pip install --only-binary=:all: --target "$prebundle" miskeyed-xr-agent==0.1.0
-          PYTHONPATH="$prebundle" "$KIT_PYTHON" -c 'import miskeyed.xr.agent as x; print("CORE_WHEEL", x.__file__)'
-          echo "KIT_STAGE=$stage" >> "$GITHUB_ENV"
-
-      - name: Launch PB 26h1 Kit, exercise grounding, unload, and exit
-        run: |
-          set -o pipefail
-          "$KIT_EXECUTABLE" "$KIT_STAGE/apps/miskeyed.xr.ci.kit" \
-            --ext-folder "$KIT_ROOT/exts" \
-            --ext-folder "$KIT_ROOT/extsbuild" \
-            --ext-folder "$KIT_ROOT/extscache" \
-            --ext-folder "$KIT_STAGE/exts" \
-            --/miskeyed/kit/xr_agent/ciSmoke=true \
-            --no-window | tee kit-ci.log
-          grep -F "KIT_CI_PASS" kit-ci.log
-          grep -F "KIT_CI_UNLOAD" kit-ci.log
+          archive="$(find "$RUNNER_TEMP/kat/_build/packages" -type f -name '*.zip' ! -name '*thin*' -print -quit)"
+          test -n "$archive"
+          mkdir release
+          output="release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.zip"
+          cp "$archive" "$output"
+          python scripts/manifest_kit_package.py --archive "$output" --version "$APP_VERSION" --platform '${{ matrix.platform }}' --output "release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.json"
+      - name: Test the exact packaged application
+        working-directory: ${{ runner.temp }}/kat
+        run: ./${{ matrix.repo }} test --from-package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kit-package-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error

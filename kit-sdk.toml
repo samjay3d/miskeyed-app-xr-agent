@@ -10,4 +10,4 @@ windows-x86_64 = "nvidia/omniverse/kit-sdk-windows-pb26h1"
 
 [template]
 repository = "https://github.com/NVIDIA-Omniverse/kit-app-template.git"
-revision = "483e364a4176f102f2d3c3aaf9f301a103d61d69"
+revision = "1b93a81c778d2387fe7b5288e0bcfdce66c2b239"
