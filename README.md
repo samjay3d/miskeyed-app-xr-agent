@@ -24,6 +24,14 @@ Rift S before the adapter is connected.
 
 ## Configure and build
 
+For the shortest local path (Ninja required):
+
+```bash
+cmake --preset dev
+cmake --build --preset dev
+ctest --preset dev
+```
+
 The reproducible default fetches the exact reviewed core commit:
 
 ```bash
@@ -52,6 +60,29 @@ Launch the staged app with `cmake --build build --target launch`. The native
 core module must be built with the same Python ABI as the selected Kit SDK; if
 Kit embeds a different Python, configure CMake with
 `-DPython_EXECUTABLE=/path/to/kit/python`.
+
+When using the `dev` preset, supply Kit while configuring and launch with:
+
+```bash
+cmake --preset dev -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk \
+  -DPython_EXECUTABLE=/path/to/kit/python
+cmake --build build/dev --target launch
+```
+
+## What CI proves
+
+The normal `CI` workflow runs on clean GitHub-hosted Linux and Windows machines
+with Python 3.10 and 3.12. It fetches the pinned core, compiles the actual native
+binding, stages the app, runs adapter tests, imports the staged package, creates
+a real core `SpatialIntentFrame`, and uploads the stage as an artifact.
+
+Kit SDK itself is licensed software and a GitHub-hosted runner cannot accept
+NVIDIA's terms for you. The manual `Licensed Kit SDK smoke test` workflow is the
+honest second CI tier: attach a self-hosted Linux runner labeled
+`omniverse-kit`, set the repository variable `KIT_ROOT`, and dispatch it. That
+runner also needs `KIT_PYTHON` set to the executable shipped with that SDK. The
+job builds with Kit's Python ABI and boots the staged app for 100 updates. A
+Rift S hardware acceptance run remains a physical test, not a mocked CI claim.
 
 Look for `[miskeyed.xr]` in the console. `XR runtime bridge discovered` means
 the Kit-owned bridge was found. A missing bridge is reported as an integration

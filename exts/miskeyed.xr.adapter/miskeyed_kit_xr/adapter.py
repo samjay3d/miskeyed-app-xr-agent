@@ -114,7 +114,7 @@ class KitXRSample:
     aim_origin: Optional[tuple[float, float, float]] = None
     aim_direction: Optional[tuple[float, float, float]] = None
     pointing_source: Any = None
-    pointing_confidence: float = 0.0
+    pointing_confidence: Any = None
 
     def __post_init__(self) -> None:
         if not self.timestamp_domain or not self.reference_space_id:

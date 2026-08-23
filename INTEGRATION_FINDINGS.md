@@ -54,3 +54,25 @@ the already-created upstream targets. This is build integration only and does
 not belong in the runtime adapter.
 
 **Core proposal:** Skip `find_package` when `pybind11::module` already exists.
+
+## F-005 — Public CI cannot redistribute or accept Kit SDK terms (open)
+
+**Observed:** GitHub-hosted runners can build the complete open-source adapter
+and core but do not contain the licensed Kit SDK, an NVIDIA GPU, an OpenXR
+runtime, or a Rift S.
+
+**Boundary decision:** CI has two explicit tiers. Hosted Linux/Windows jobs
+compile and exercise the staged native core. A manually dispatched self-hosted
+runner labeled `omniverse-kit` boots the real Kit application. Live tracking
+remains a documented physical hardware gate; CI never substitutes pose mocks
+and reports that as headset validation.
+
+## F-006 — Pointing confidence is categorical, not numeric (resolved 2026-08-23)
+
+**Observed:** Exercising the staged native binding caught that
+`PointingIntent.confidence` requires the core `TrackingConfidence` enum; the
+first adapter draft incorrectly annotated the Kit-side value as a float.
+
+**Boundary decision:** `KitXRSample` carries the mapped core confidence enum and
+the staged-core smoke test assigns it through the real pybind11 property. The
+core contract is coherent; no core change is proposed.

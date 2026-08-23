@@ -1,0 +1,47 @@
+name: Licensed Kit SDK smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# This intentionally runs only when requested on an organization/user-managed
+# machine where NVIDIA terms have been accepted and Kit is already installed.
+jobs:
+  kit-smoke:
+    runs-on: [self-hosted, linux, x64, omniverse-kit]
+    timeout-minutes: 15
+    env:
+      KIT_ROOT: ${{ vars.KIT_ROOT }}
+      KIT_PYTHON: ${{ vars.KIT_PYTHON }}
+
+    steps:
+      - name: Check out app
+        uses: actions/checkout@v4
+
+      - name: Verify licensed Kit installation
+        run: test -x "$KIT_ROOT/kit/kit" && test -x "$KIT_PYTHON"
+
+      - name: Ensure Kit Python can run tests
+        run: "$KIT_PYTHON" -m pip install --disable-pip-version-check pytest
+
+      - name: Configure against Kit Python
+        run: >-
+          cmake --preset ci
+          -DKIT_ROOT="$KIT_ROOT"
+          -DPython_EXECUTABLE="$KIT_PYTHON"
+
+      - name: Build and stage
+        run: cmake --build --preset ci --parallel 2
+
+      - name: Test staged core with Kit Python ABI
+        run: ctest --preset ci
+
+      - name: Boot Kit app for 100 updates
+        run: >-
+          "$KIT_ROOT/kit/kit" build/ci/stage/apps/miskeyed.xr.kit
+          --ext-folder build/ci/stage/exts
+          --/app/python/extraPaths/0="${{ github.workspace }}/build/ci/stage/python"
+          --/app/quitAfter=100
+          --/app/fastShutdown=true
