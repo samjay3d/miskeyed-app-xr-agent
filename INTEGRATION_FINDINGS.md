@@ -77,6 +77,17 @@ creates a USD cube in Kit's context, raycasts its world bound, calls the real
 core `resolve_target` and `IntentTimeline`, checks the opaque SdfPath, then asks
 Kit to quit. The production experience continues to own the OpenXR path.
 
+## F-010 — Kit runtime discovery ignored Packman symlinks (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32625539575` successfully provisioned Kit 110.2 and
+completed NVIDIA's release build, then failed in the runtime-location step. The
+workflow searched only `find -type f`, but Packman exposes
+`_build/linux-x86_64/release/kit/kit` and its Python through symlinks.
+
+**Boundary decision:** Use the stable output layout printed and produced by the
+pinned official Kit App Template build and validate both paths with `test -x`,
+which follows symlinks. Do not heuristically scan the SDK tree.
+
 ## F-006 — Pointing confidence is categorical, not numeric (resolved 2026-08-23)
 
 **Observed:** Exercising the staged native binding caught that

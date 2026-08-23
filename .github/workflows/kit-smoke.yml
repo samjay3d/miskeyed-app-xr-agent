@@ -36,11 +36,11 @@ jobs:
       - name: Locate provisioned Kit runtime
         shell: bash
         run: |
-          kit_executable="$(find _kit_app_template/_build -type f -path '*/kit/kit' -perm -111 -print -quit)"
-          test -n "$kit_executable"
-          kit_root="$(dirname "$(dirname "$kit_executable")")"
-          kit_python="$(find "$(dirname "$kit_executable")" -type f \( -name python3 -o -name python \) -perm -111 -print -quit)"
-          test -n "$kit_python"
+          kit_root="_kit_app_template/_build/linux-x86_64/release"
+          kit_executable="$kit_root/kit/kit"
+          kit_python="$kit_root/kit/python/bin/python3"
+          test -x "$kit_executable"
+          test -x "$kit_python"
           echo "KIT_EXECUTABLE=$kit_executable" >> "$GITHUB_ENV"
           echo "KIT_ROOT=$kit_root" >> "$GITHUB_ENV"
           echo "KIT_PYTHON=$kit_python" >> "$GITHUB_ENV"
