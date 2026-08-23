@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "miskeyed-app-xr-agent"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[project.scripts]
+miskeyed-kit-xr = "miskeyed_app_xr_agent.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+package-dir = {"" = "exts/miskeyed.kit.xr_agent"}
+
+[tool.setuptools.packages.find]
+where = ["exts/miskeyed.kit.xr_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["exts/miskeyed.kit.xr_agent"]

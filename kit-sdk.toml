@@ -1,0 +1,13 @@
+[kit]
+# Product contract. The GitHub template is build scaffolding, not the runtime.
+production_branch = "26h1"
+ngc_collection = "https://catalog.ngc.nvidia.com/orgs/nvidia/teams/omniverse/collections/omniverse_26h1"
+version = "110.1.2"
+
+[kit.resources]
+linux-x86_64 = "nvidia/omniverse/kit-sdk-linux-pb26h1"
+windows-x86_64 = "nvidia/omniverse/kit-sdk-windows-pb26h1"
+
+[template]
+repository = "https://github.com/NVIDIA-Omniverse/kit-app-template.git"
+revision = "483e364a4176f102f2d3c3aaf9f301a103d61d69"

@@ -1,0 +1,51 @@
+name: PyPI package
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  package-test:
+    name: wrapper (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, python: "3.10" }
+          - { os: ubuntu-22.04, python: "3.11" }
+          - { os: ubuntu-22.04, python: "3.12" }
+          - { os: ubuntu-22.04, python: "3.13" }
+          - { os: macos-14, python: "3.12" }
+          - { os: windows-2022, python: "3.12" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --disable-pip-version-check build pytest
+      - run: python -m build
+      - run: python tests/check_wheel.py dist
+      - shell: bash
+        run: python -m pip install dist/*.whl
+      - run: python -m pytest -q tests/test_launcher.py
+      - run: miskeyed-kit-xr --help
+      - run: miskeyed-kit-xr doctor
+        if: runner.os != 'macOS'
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package-test
+    runs-on: ubuntu-22.04
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
