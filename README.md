@@ -12,8 +12,8 @@ core code remains under the separately owned `miskeyed.xr.agent` package.
 
 ## Current milestone
 
-The build fetches the reviewed core revision, compiles its real Python
-extension, and stages it beside a supported Kit application. Kit CI provisions
+The Kit dependency build installs `miskeyed-xr-agent==0.1.0` from PyPI into a
+`pip_prebundle` dependency extension. Kit CI provisions
 the official NVIDIA runtime, launches it headless, loads this extension,
 creates a stage through Kit's live `omni.usd` context, grounds a real core
 `SpatialIntentFrame` against a USD cube, submits `move this there` through
@@ -23,7 +23,7 @@ creates a stage through Kit's live `omni.usd` context, grounds a real core
 
 * An Omniverse Kit SDK checkout/build (`kit` or `kit.exe`)
 * An Oculus Rift S configured as the active OpenXR runtime
-* CMake 3.24+, a C++20 compiler, Python development headers, and internet access
+* CMake 3.24+, Python 3.10+, and internet access
 * An extracted Omniverse Kit SDK whose license has been accepted
 
 ## Configure and build
@@ -36,7 +36,7 @@ cmake --build --preset dev
 ctest --preset dev
 ```
 
-The reproducible default fetches the exact reviewed core commit:
+For a local Kit installation:
 
 ```bash
 cmake -S . -B build -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk
@@ -44,45 +44,30 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-During joint development, use the branch checkout directly instead:
-
-```bash
-cmake -S . -B build \
-  -DMISKEYED_XR_AGENT_SOURCE=/absolute/path/to/miskeyed-xr-agent \
-  -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk
-cmake --build build --parallel
-```
-
 Download Kit SDK from NVIDIA's official
 [Kit App Template/NGC workflow](https://github.com/NVIDIA-Omniverse/kit-app-template#quick-start).
 The SDK cannot be silently downloaded by CMake because NVIDIA requires the
 developer to accept its product terms. `KIT_ROOT` makes that one unavoidable
-manual step explicit; everything owned by this repository/core is built and
-staged by CMake.
+manual step explicit. The official Kit App Template dependency build installs
+the released core wheel using Kit's own Python and exposes it through
+`miskeyed.xr.python_deps`; this repository never builds or copies the core.
 
 Launch the staged app with `cmake --build build --target launch`. The native
-core module must be built with the same Python ABI as the selected Kit SDK; if
-Kit embeds a different Python, configure CMake with
-`-DPython_EXECUTABLE=/path/to/kit/python`.
+core wheel must support the Python ABI embedded by the selected Kit SDK.
 
 When using the `dev` preset, supply Kit while configuring and launch with:
 
 ```bash
-cmake --preset dev -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk \
-  -DPython_EXECUTABLE=/path/to/kit/python
+cmake --preset dev -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk
 cmake --build build/dev --target launch
 ```
 
 ## Supported CI targets
 
-`core-ci` checks out `miskeyed-xr-agent` separately on clean Linux and Windows
-runners, disables OpenXR and Python bindings, builds its native spatial library
-and host example, and runs the core tests. It does not configure this Kit app or
-resolve any Kit/Omniverse package. That is the dependency-boundary proof.
-
-`kit-ci` is a required implementation target, not a placeholder. It uses the
+The core repository independently builds, tests, and publishes its wheels.
+This app has only `kit-ci`. It uses the
 official NVIDIA Kit App Template tooling to provision Kit, locates Kit's runtime
-and Python, compiles this application against that ABI, launches the headless CI
+and Python, installs `miskeyed-xr-agent==0.1.0` into `pip_prebundle`, launches the headless CI
 experience, and requires the extension to complete a Kit/OpenUSD grounding pass
 before requesting a clean process exit. Any provisioning, extension-load,
 scene-context, grounding, or shutdown error fails the job.
@@ -96,9 +81,9 @@ The Windows job explicitly initializes the Visual Studio developer environment
 before using the Ninja preset. This is required because installing Visual Studio
 on a GitHub runner does not by itself place `cl.exe` on the job's `PATH`.
 
-Look for `[miskeyed.xr]` in the console. `XR runtime bridge discovered` means
-the Kit-owned bridge was found. A missing bridge is reported as an integration
-failure, not replaced by a mock or a second OpenXR session.
+Look for `[miskeyed.xr]` in the console. The production adapter directly uses
+`omni.kit.xr.core.XRCore.get_singleton()`, `/user/head`, `/user/hand/right`, and
+their Kit-owned virtual-world poses. It never creates another OpenXR session.
 
 ## Boundary
 

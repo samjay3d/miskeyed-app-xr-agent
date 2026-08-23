@@ -5,6 +5,8 @@ from __future__ import annotations
 import carb
 import omni.kit.app
 import omni.usd
+import platform
+import sys
 from pxr import Usd, UsdGeom
 
 import miskeyed.xr.agent as core
@@ -15,6 +17,12 @@ from .adapter import KitXRAdapter, KitXRBridge, KitXRSample
 def run() -> None:
     """Ground one real core frame against a prim in Kit's active USD context."""
 
+    carb.log_info(
+        "[miskeyed.kit.xr_agent] CORE_WHEEL "
+        f"python={sys.version} executable={sys.executable} "
+        f"abi={sys.implementation.cache_tag} os={platform.system()} "
+        f"arch={platform.machine()} module={core.__file__}"
+    )
     context = omni.usd.get_context()
     context.new_stage()
     stage = context.get_stage()

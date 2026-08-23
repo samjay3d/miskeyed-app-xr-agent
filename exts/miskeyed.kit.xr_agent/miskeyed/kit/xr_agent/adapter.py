@@ -25,23 +25,19 @@ class KitXRBridge:
 
 
 def discover_kit_xr(importer: Callable[[str], ModuleType] = import_module) -> KitXRBridge:
-    """Find an existing Kit XR interface without initializing OpenXR ourselves."""
+    """Acquire Kit 110.2's supported XRCore singleton."""
 
-    attempts: list[str] = []
-    for module_name in ("omni.kit.xr.system.openxr", "omni.kit.xr.core", "omni.kit.xr.system.core"):
-        try:
-            module = importer(module_name)
-        except ImportError as exc:
-            attempts.append(f"{module_name}: {exc}")
-            continue
-        for accessor in ("get_xr_interface", "get_interface"):
-            factory = getattr(module, accessor, None)
-            if callable(factory):
-                interface = factory()
-                if interface is not None:
-                    return KitXRBridge(module_name, interface)
-        attempts.append(f"{module_name}: no public interface accessor")
-    raise IntegrationContractError("Kit-owned XR bridge unavailable; " + "; ".join(attempts))
+    try:
+        module = importer("omni.kit.xr.core")
+    except ImportError as exc:
+        raise IntegrationContractError("omni.kit.xr.core is unavailable") from exc
+    xr_core_type = getattr(module, "XRCore", None)
+    if xr_core_type is None:
+        raise IntegrationContractError("omni.kit.xr.core does not export XRCore")
+    interface = xr_core_type.get_singleton()
+    if interface is None:
+        raise IntegrationContractError("XRCore.get_singleton() returned no Kit XR interface")
+    return KitXRBridge("omni.kit.xr.core.XRCore", interface)
 
 
 def load_core_contract(importer: Callable[[str], ModuleType] = import_module) -> ModuleType:
@@ -59,7 +55,7 @@ def load_core_contract(importer: Callable[[str], ModuleType] = import_module) ->
             return module
         errors.append(f"{module_name}: missing {', '.join(missing)}")
     raise IntegrationContractError(
-        "install the current miskeyed-xr-agent source checkout; " + "; ".join(errors)
+        "Kit dependency bundle must provide miskeyed-xr-agent==0.1.0; " + "; ".join(errors)
     )
 
 
@@ -69,11 +65,53 @@ class KitXRAdapter:
     def __init__(self, bridge: KitXRBridge, core: ModuleType) -> None:
         self.bridge = bridge
         self.core = core
+        self._space_key: Optional[tuple[str, str]] = None
+        self._space_generation = 0
 
-    def sample_head(self) -> Any:
-        raise IntegrationContractError(
-            "live head-pose accessor is unverified for this Kit release; see F-001"
+    def sample_head(
+        self,
+        timestamp_ns: int,
+        timestamp_domain: str,
+        anchor_mode: str,
+        anchor_path: str,
+    ) -> Any:
+        """Read Kit's head and right-controller virtual-world poses into a frame."""
+
+        head = self.bridge.interface.get_input_device("/user/head")
+        if head is None:
+            raise IntegrationContractError("Kit XR head input device is unavailable")
+        head_pose = _matrix_pose(head.get_virtual_world_pose(""))
+        controller = self.bridge.interface.get_input_device("/user/hand/right")
+        aim_origin = None
+        aim_direction = None
+        if controller is not None:
+            controller_matrix = controller.get_virtual_world_pose()
+            aim_pose = _matrix_pose(controller_matrix)
+            direction = controller_matrix.TransformDir((0.0, 0.0, -1.0)).GetNormalized()
+            aim_origin = aim_pose[0]
+            aim_direction = tuple(float(direction[index]) for index in range(3))
+
+        space_key = (anchor_mode or "kit-virtual-world", anchor_path or "/")
+        if self._space_key is not None and space_key != self._space_key:
+            self._space_generation += 1
+        self._space_key = space_key
+        sample = KitXRSample(
+            timestamp_ns=timestamp_ns,
+            timestamp_domain=timestamp_domain,
+            reference_space_type="KIT_VIRTUAL_WORLD",
+            reference_space_id=f"{space_key[0]}:{space_key[1]}",
+            reference_space_generation=self._space_generation,
+            head_position=head_pose[0],
+            head_orientation=head_pose[1],
+            head_tracking=self.core.TrackingConfidence.POSITION_AND_ORIENTATION,
+            aim_origin=aim_origin,
+            aim_direction=aim_direction,
+            pointing_source=self.core.PointingSource.CONTROLLER if controller else None,
+            pointing_confidence=(
+                self.core.TrackingConfidence.POSITION_AND_ORIENTATION if controller else None
+            ),
         )
+        return self.to_frame(sample)
 
     def to_frame(self, sample: "KitXRSample") -> Any:
         """Translate a validated Kit sample without changing its time/space identity."""
@@ -130,3 +168,18 @@ def _pose(core: ModuleType, position: tuple[float, float, float], orientation: t
     pose.position = core.Vec3(*position)
     pose.orientation = core.Quaternion(*orientation)
     return pose
+
+
+def _matrix_pose(matrix: Any) -> tuple[tuple[float, float, float], tuple[float, float, float, float]]:
+    translation = matrix.ExtractTranslation()
+    quaternion = matrix.ExtractRotationQuat()
+    imaginary = quaternion.GetImaginary()
+    return (
+        tuple(float(translation[index]) for index in range(3)),
+        (
+            float(imaginary[0]),
+            float(imaginary[1]),
+            float(imaginary[2]),
+            float(quaternion.GetReal()),
+        ),
+    )

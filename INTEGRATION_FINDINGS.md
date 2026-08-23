@@ -3,31 +3,28 @@
 This file is a running, append-only-at-the-bottom integration log. Findings are
 resolved only after validation against a real Kit build and headset.
 
-## F-001 — Kit XR pose API varies by Kit release (open)
+## F-001 — Kit XR pose API varies by Kit release (resolved 2026-08-23)
 
-**Observed:** Kit extension identifiers and the Python surface used to read the
-Kit-owned OpenXR session are not stable enough to infer without the target Kit
-SDK. The repository does not yet include a Kit SDK or Rift S runtime.
+**Observed:** The pinned Kit 110.2 line exposes `XRCore` from
+`omni.kit.xr.core`. `XRCore.get_singleton().get_input_device()` provides
+`/user/head` and `/user/hand/right`; devices expose `get_virtual_world_pose()`.
 
-**Boundary decision:** This belongs in `KitXRAdapter`. The adapter probes only
-Kit XR modules/interfaces and refuses to create an OpenXR loader, instance, or
-session. Once the target Kit release is known, replace discovery with its
-documented API and record the extension/version here.
+**Boundary decision:** `KitXRAdapter` targets that API directly. Head and right
+controller virtual-world poses become the core head pose and controller ray.
+There is no multi-major compatibility probe and no app-owned OpenXR lifecycle.
 
 **Core proposal:** None. Host lifecycle ownership is intentionally outside
 `miskeyed-xr-agent`.
 
-## F-002 — Core construction contract unavailable (resolved 2026-08-23)
+## F-002 — Core ownership boundary (resolved 2026-08-23)
 
-**Observed:** The branch now publicly exposes `miskeyed.xr.agent`, including
+**Observed:** `miskeyed-xr-agent==0.1.0` publicly exposes `miskeyed.xr.agent`, including
 `SpatialIntentFrame`, `ReferenceSpace`, pose/ray values, `resolve_target`, and
-`IntentTimeline`. Revision `ea1c6106c9e85b3d23491c403e47a6e4d6818fb0` was
-reviewed and is the reproducible CMake default.
+`IntentTimeline`, as platform wheels on PyPI.
 
-**Boundary decision:** CMake compiles that core revision directly, while
-`MISKEYED_XR_AGENT_SOURCE` selects a live sibling checkout. `KitXRSample` is an
-adapter input DTO, not a duplicate portable domain model. Translation constructs
-the core's real types and preserves Kit time/space values verbatim.
+**Boundary decision:** `miskeyed-xr-agent` owns and publishes the host-neutral
+core. `miskeyed-app-xr-agent` consumes exactly version 0.1.0 from PyPI through
+Kit App Template's `pip_prebundle`. App CMake does not fetch or compile core.
 
 **Core result:** The requested single public module and host integration example
 now exist. No core change is proposed for this finding.
@@ -42,17 +39,18 @@ CMake configure to accept those terms for the developer.
 official NVIDIA Kit App Template tooling provisions the runtime as a supported
 job step. Kit availability is expected; provisioning failure fails `kit-ci`.
 
-## F-004 — Core assumes pybind11 must be installed (open)
+## F-004 — App-side pybind11 bridge (resolved 2026-08-23)
 
 **Observed:** The core's Python option unconditionally calls
 `find_package(pybind11 CONFIG REQUIRED)`, even when a parent CMake project has
 already provided the official `pybind11` targets with `FetchContent`.
 
-**Boundary decision:** This app supplies a minimal package-discovery bridge to
-the already-created upstream targets. This is build integration only and does
-not belong in the runtime adapter.
+**Boundary decision:** Deleted the app-side core build and pybind11 bridge. Wheel
+compatibility is now a core release-matrix responsibility and a hard `kit-ci`
+gate.
 
-**Core proposal:** Skip `find_package` when `pybind11::module` already exists.
+**Core result:** PyPI publishes a CPython 3.12 manylinux x86-64 wheel compatible
+with Kit 110.2's Python 3.12 runtime.
 
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 

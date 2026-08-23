@@ -5,8 +5,10 @@ version = "0.1.0"
 category = "XR"
 
 [dependencies]
-"omni.kit.xr.system.openxr" = { optional = true }
+"miskeyed.xr.python_deps" = {}
+"omni.kit.xr.core" = {}
 "omni.usd" = {}
+"omni.ui" = {}
 
 [[python.module]]
 name = "miskeyed.kit.xr_agent.extension"

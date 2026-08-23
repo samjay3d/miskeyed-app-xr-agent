@@ -30,7 +30,8 @@ jobs:
         run: |
           mkdir -p source/apps source/extensions
           cp ../apps/miskeyed.xr.ci.kit source/apps/
-          cp -R ../exts/miskeyed.kit.xr_agent source/extensions/
+          cp -R ../exts/. source/extensions/
+          cat ../kit-template/tools/deps/pip.toml >> tools/deps/pip.toml
           ./repo.sh build
 
       - name: Locate provisioned Kit runtime
@@ -39,29 +40,22 @@ jobs:
           kit_root="_kit_app_template/_build/linux-x86_64/release"
           kit_executable="$kit_root/kit/kit"
           kit_python="$kit_root/kit/python/bin/python3"
+          kit_app="$kit_root/apps/miskeyed.xr.ci.kit"
           test -x "$kit_executable"
           test -x "$kit_python"
+          test -f "$kit_app"
           echo "KIT_EXECUTABLE=$kit_executable" >> "$GITHUB_ENV"
           echo "KIT_ROOT=$kit_root" >> "$GITHUB_ENV"
           echo "KIT_PYTHON=$kit_python" >> "$GITHUB_ENV"
-
-      - name: Configure against Kit Python
-        run: >-
-          cmake --preset ci
-          -DKIT_ROOT="$KIT_ROOT"
-          -DPython_EXECUTABLE="$KIT_PYTHON"
-
-      - name: Build and stage
-        run: cmake --build --preset ci --parallel 2
+          echo "KIT_APP=$kit_app" >> "$GITHUB_ENV"
 
       - name: Launch Kit, load extension, exercise USD grounding, and exit
         shell: bash
         run: |
           set -o pipefail
-          "$KIT_EXECUTABLE" build/ci/stage/apps/miskeyed.xr.ci.kit \
-            --ext-folder build/ci/stage/exts \
+          "$KIT_EXECUTABLE" "$KIT_APP" \
+            --ext-folder "$KIT_ROOT/extsbuild" \
             --ext-folder "$KIT_ROOT/extscache" \
-            --/app/python/extraPaths/0="${{ github.workspace }}/build/ci/stage/python" \
             --/miskeyed/kit/xr_agent/ciSmoke=true \
             --no-window | tee kit-ci.log
           grep -F "KIT_CI_PASS" kit-ci.log

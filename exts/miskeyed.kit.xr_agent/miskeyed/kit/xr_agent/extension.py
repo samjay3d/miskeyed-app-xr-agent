@@ -3,6 +3,7 @@ from __future__ import annotations
 import carb
 import omni.ext
 import omni.kit.app
+import omni.usd
 
 from .adapter import (
     IntegrationContractError,
@@ -17,6 +18,9 @@ class MiskeyedXRExtension(omni.ext.IExt):
     def on_startup(self, ext_id: str) -> None:
         self._adapter = None
         self._update_subscription = None
+        self._debug_panel = None
+        self._timeline = None
+        self._latest_timestamp_ns = 0
         carb.log_info(f"[miskeyed.xr] starting {ext_id}")
         ci_smoke = carb.settings.get_settings().get_as_bool("/miskeyed/kit/xr_agent/ciSmoke")
         try:
@@ -31,9 +35,53 @@ class MiskeyedXRExtension(omni.ext.IExt):
             self._update_subscription = omni.kit.app.get_app().get_update_event_stream().create_subscription_to_pop(
                 self._run_ci_smoke, name="miskeyed.kit.xr_agent.ci_smoke"
             )
+        elif self._adapter is not None:
+            from .debug_panel import XRDebugPanel
+
+            self._timeline = core.IntentTimeline()
+            self._debug_panel = XRDebugPanel(self._submit_text)
+            self._update_subscription = omni.kit.app.get_app().get_update_event_stream().create_subscription_to_pop(
+                self._on_xr_update, name="miskeyed.kit.xr_agent.live_update"
+            )
+
+    def _on_xr_update(self, _event) -> None:
+        settings = carb.settings.get_settings()
+        app = omni.kit.app.get_app()
+        timestamp_ns = int(app.get_time_since_start_s() * 1_000_000_000)
+        try:
+            frame = self._adapter.sample_head(
+                timestamp_ns,
+                "kit.app.time_since_start",
+                settings.get_as_string("/persistent/xr/anchorMode"),
+                settings.get_as_string("/xrstage/customAnchor"),
+            )
+        except IntegrationContractError:
+            return
+        stage = omni.usd.get_context().get_stage()
+        if stage is not None and frame.pointing is not None:
+            from .scene_query import raycast_stage
+
+            frame = self._adapter.core.resolve_target(
+                frame, lambda ray: raycast_stage(self._adapter.core, stage, ray)
+            )
+        self._timeline.push(frame)
+        self._latest_timestamp_ns = timestamp_ns
+        self._debug_panel.show_frame(self._adapter.core.to_dict(frame))
+
+    def _submit_text(self) -> None:
+        text = self._debug_panel.text_model.get_value_as_string().strip()
+        if not text or not self._latest_timestamp_ns:
+            return
+        event = self._timeline.submit_text(text, self._latest_timestamp_ns)
+        if event is not None:
+            self._debug_panel.show_grounded(self._adapter.core.to_dict(event))
 
     def _run_ci_smoke(self, _event) -> None:
         self._update_subscription = None
+        if self._debug_panel is not None:
+            self._debug_panel.destroy()
+            self._debug_panel = None
+        self._timeline = None
         from .ci_smoke import run
 
         try:

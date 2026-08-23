@@ -1,0 +1,9 @@
+[package]
+title = "Miskeyed XR Python Dependencies"
+description = "Released host-neutral XR core from PyPI"
+version = "0.1.0"
+category = "Internal"
+
+[[python.module]]
+path = "pip_prebundle"
+

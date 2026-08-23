@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "miskeyed-app-xr-agent"
 version = "0.1.0"
 requires-python = ">=3.10"
+dependencies = ["miskeyed-xr-agent==0.1.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

@@ -18,18 +18,18 @@ def test_discovers_borrowed_kit_interface_without_openxr_construction():
 
     def importer(name):
         imported.append(name)
-        return SimpleNamespace(get_xr_interface=lambda: borrowed)
+        return SimpleNamespace(XRCore=SimpleNamespace(get_singleton=lambda: borrowed))
 
     bridge = discover_kit_xr(importer)
     assert bridge.interface is borrowed
-    assert imported == ["omni.kit.xr.system.openxr"]
+    assert imported == ["omni.kit.xr.core"]
 
 
 def test_missing_kit_bridge_fails_instead_of_mocking_tracking():
     def importer(name):
         raise ImportError("not installed")
 
-    with pytest.raises(IntegrationContractError, match="Kit-owned XR bridge unavailable"):
+    with pytest.raises(IntegrationContractError, match="omni.kit.xr.core is unavailable"):
         discover_kit_xr(importer)
 
 

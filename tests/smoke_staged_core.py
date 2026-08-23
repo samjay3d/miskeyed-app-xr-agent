@@ -1,10 +1,12 @@
-"""Exercise the staged native core through the adapter, as Kit will import it."""
+"""Exercise the released PyPI core through the adapter, as Kit imports it."""
 
 from miskeyed.xr import agent as core
+from importlib.metadata import version
 from miskeyed.kit.xr_agent.adapter import KitXRAdapter, KitXRBridge, KitXRSample
 
 
 adapter = KitXRAdapter(KitXRBridge("ci.kit-owned-placeholder", object()), core)
+assert version("miskeyed-xr-agent") == "0.1.0"
 frame = adapter.to_frame(
     KitXRSample(
         timestamp_ns=42,
