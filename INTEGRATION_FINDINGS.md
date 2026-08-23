@@ -116,6 +116,11 @@ Kit App Template's package-entry convention.
 `__init__.py` exports the `IExt` class when running under Kit. Hardware-free
 adapter unit tests can still import the package without Omniverse installed.
 
+**Follow-up:** Run `32627142579` showed that `find_spec("omni.ext")` is not a
+valid Kit-runtime test even while the extension system is active. The package
+now checks Kit's already-loaded `omni.ext` module directly before exporting the
+entry point.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter

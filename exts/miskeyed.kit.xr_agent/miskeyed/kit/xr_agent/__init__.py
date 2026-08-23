@@ -1,8 +1,8 @@
 """Kit XR adapter package and standard Kit extension entry point."""
 
-from importlib.util import find_spec
+import sys
 
-if find_spec("omni") is not None and find_spec("omni.ext") is not None:
+if "omni.ext" in sys.modules:
     from .extension import MiskeyedXRExtension
 
     __all__ = ["MiskeyedXRExtension"]
