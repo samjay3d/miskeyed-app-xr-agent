@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import tempfile
 import zipfile
@@ -16,7 +17,10 @@ def main() -> None:
     args = parser.parse_args()
 
     executable_relative = Path("kit/kit.exe" if args.platform.startswith("windows") else "kit/kit")
-    experience_relative = Path("apps/miskeyed.xr.ci.kit")
+    # Launch the production dependency root, not a smaller headless dependency
+    # graph. The setting only replaces physical XR input with the deterministic
+    # USD/core smoke after all production dependencies have resolved.
+    experience_relative = Path("apps/miskeyed.xr.kit")
     with tempfile.TemporaryDirectory(prefix="miskeyed-kat-package-") as temporary:
         install = Path(temporary)
         with zipfile.ZipFile(args.archive) as package:
@@ -31,9 +35,17 @@ def main() -> None:
             raise SystemExit(f"packaged CI experience is missing: {experience_relative}")
         if not args.platform.startswith("windows"):
             executable.chmod(executable.stat().st_mode | 0o111)
+        environment = os.environ.copy()
+        environment.pop("LD_LIBRARY_PATH", None)
         result = subprocess.run(
-            [str(executable), str(experience), "--no-window"],
+            [
+                str(executable),
+                str(experience),
+                "--no-window",
+                "--/miskeyed/kit/xr_agent/ciSmoke=true",
+            ],
             cwd=root,
+            env=environment,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
