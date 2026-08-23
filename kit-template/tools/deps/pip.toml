@@ -1,0 +1,6 @@
+
+[[dependency]]
+python = "../../_build/target-deps/python"
+packages = ["miskeyed-xr-agent==0.1.0"]
+target = "../../_build/target-deps/pip_prebundle"
+append_to_install_folder = true

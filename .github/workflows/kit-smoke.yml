@@ -1,0 +1,87 @@
+name: Kit App Template package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kit-package-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # This KAT production commit pins kit-kernel 110.1.2+production for PB 26h1.
+  KIT_TEMPLATE_REVISION: 1b93a81c778d2387fe7b5288e0bcfdce66c2b239
+
+jobs:
+  kit-package:
+    name: kit-package (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, platform: linux-x86_64, repo: repo.sh }
+          - { os: windows-2022, platform: windows-x86_64, repo: repo.bat }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Resolve application version
+        run: |
+          version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+      - name: Materialize pinned Kit App Template project
+        run: |
+          git clone https://github.com/NVIDIA-Omniverse/kit-app-template.git "$RUNNER_TEMP/kat"
+          git -C "$RUNNER_TEMP/kat" checkout "$KIT_TEMPLATE_REVISION"
+          python scripts/prepare_kit_template.py --template "$RUNNER_TEMP/kat" --version "$APP_VERSION"
+      - name: Build and resolve production extension closure
+        working-directory: ${{ runner.temp }}/kat
+        run: |
+          if [[ '${{ matrix.platform }}' == linux-* ]]; then
+            # setup-python adds its own lib directory to LD_LIBRARY_PATH. That
+            # shadows libraries used by Packman's NVIDIA Python bootstrap and
+            # made its stdlib zlib module unavailable on the hosted runner.
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} build --release
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} precache_exts
+          else
+            ./${{ matrix.repo }} build --release
+            ./${{ matrix.repo }} precache_exts
+          fi
+      - name: Package with NVIDIA Kit App Template
+        working-directory: ${{ runner.temp }}/kat
+        run: |
+          # Use KAT's configured project name. repo test --from-package uses
+          # that same identity to locate the archive, so an unrelated --name
+          # override would package successfully but make the supported package
+          # test unable to find the exact output.
+          if [[ '${{ matrix.platform }}' == linux-* ]]; then
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} package
+          else
+            ./${{ matrix.repo }} package
+          fi
+      - name: Validate exact fat package and create release manifest
+        run: |
+          archive="$(find "$RUNNER_TEMP/kat/_build/packages" -type f -name '*.zip' ! -name '*thin*' -print -quit)"
+          test -n "$archive"
+          mkdir release
+          output="release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.zip"
+          cp "$archive" "$output"
+          python scripts/manifest_kit_package.py --archive "$output" --version "$APP_VERSION" --platform '${{ matrix.platform }}' --output "release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.json"
+      - name: Test the exact packaged application
+        run: python scripts/test_kit_package.py --archive "release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.zip" --platform '${{ matrix.platform }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kit-package-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error

@@ -1,0 +1,14 @@
+[package]
+title = "Miskeyed Kit XR Agent"
+description = "Adapts Kit-owned XR state to miskeyed-xr-agent"
+version = "0.1.0"
+category = "XR"
+
+[dependencies]
+"miskeyed.xr.python_deps" = {}
+"omni.kit.xr.core" = { optional = true }
+"omni.usd" = {}
+"omni.ui" = { optional = true }
+
+[[python.module]]
+name = "miskeyed.kit.xr_agent"
