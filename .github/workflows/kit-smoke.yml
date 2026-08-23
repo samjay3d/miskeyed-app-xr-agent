@@ -79,13 +79,7 @@ jobs:
           cp "$archive" "$output"
           python scripts/manifest_kit_package.py --archive "$output" --version "$APP_VERSION" --platform '${{ matrix.platform }}' --output "release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.json"
       - name: Test the exact packaged application
-        working-directory: ${{ runner.temp }}/kat
-        run: |
-          if [[ '${{ matrix.platform }}' == linux-* ]]; then
-            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} test --from-package
-          else
-            ./${{ matrix.repo }} test --from-package
-          fi
+        run: python scripts/test_kit_package.py --archive "release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.zip" --platform '${{ matrix.platform }}'
       - uses: actions/upload-artifact@v4
         with:
           name: kit-package-${{ matrix.platform }}
