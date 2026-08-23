@@ -73,6 +73,16 @@ generation, and the Kit build. Launch then could not resolve
 **Boundary decision:** Launch includes both `$KIT_ROOT/exts` for this app's
 extensions and `$KIT_ROOT/extsbuild`/`extscache` for Kit-provided dependencies.
 
+## F-013 — Main extension lacked a Kit build project (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32626823570` still could not resolve
+`miskeyed.kit.xr_agent`. The dependency extension was staged because it had a
+`premake5.lua`; the main extension had only source/config and therefore was not
+part of the official Kit build output.
+
+**Boundary decision:** Add the standard Kit App Template `project_ext` and link
+the extension's `config` and `miskeyed` Python namespace into its target.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
