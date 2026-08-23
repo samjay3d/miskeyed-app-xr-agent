@@ -6,9 +6,9 @@ category = "XR"
 
 [dependencies]
 "miskeyed.xr.python_deps" = {}
-"omni.kit.xr.core" = {}
+"omni.kit.xr.core" = { optional = true }
 "omni.usd" = {}
-"omni.ui" = {}
+"omni.ui" = { optional = true }
 
 [[python.module]]
 name = "miskeyed.kit.xr_agent.extension"

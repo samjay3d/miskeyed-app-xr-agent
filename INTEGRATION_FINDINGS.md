@@ -83,6 +83,18 @@ part of the official Kit build output.
 **Boundary decision:** Add the standard Kit App Template `project_ext` and link
 the extension's `config` and `miskeyed` Python namespace into its target.
 
+## F-014 — Headless CI must not initialize XRCore (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32626896706` resolved and loaded the app extensions,
+then crashed inside `_xrcore` on a GitHub runner without Vulkan/CUDA hardware.
+The headless contract explicitly does not require physical XR tracking.
+
+**Boundary decision:** The reusable adapter marks XRCore and UI as optional host
+services. The production `miskeyed.xr.kit` experience requires both XRCore and
+OpenXR (and UI) explicitly. The headless experience requires USD only and runs
+the core-wheel grounding check without initializing XR graphics. This keeps the
+production dependency exact without pretending a hosted runner is a headset.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
