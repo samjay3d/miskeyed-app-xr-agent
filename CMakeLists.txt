@@ -82,7 +82,7 @@ if(BUILD_TESTING)
   add_test(NAME python-adapter-tests
     COMMAND "${Python_EXECUTABLE}" -m pytest -q "${CMAKE_SOURCE_DIR}/tests")
   set_tests_properties(python-adapter-tests PROPERTIES
-    ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}/exts/miskeyed.xr.adapter")
+    ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}/exts/miskeyed.kit.xr_agent")
   add_test(NAME staged-core-smoke
     COMMAND "${Python_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/smoke_staged_core.py")
   if(WIN32)
@@ -92,5 +92,5 @@ if(BUILD_TESTING)
   endif()
   set_tests_properties(staged-core-smoke PROPERTIES
     ENVIRONMENT
-      "PYTHONPATH=${STAGE_DIR}/python${TEST_PATH_SEPARATOR}${CMAKE_SOURCE_DIR}/exts/miskeyed.xr.adapter")
+      "PYTHONPATH=${STAGE_DIR}/python${TEST_PATH_SEPARATOR}${CMAKE_SOURCE_DIR}/exts/miskeyed.kit.xr_agent")
 endif()

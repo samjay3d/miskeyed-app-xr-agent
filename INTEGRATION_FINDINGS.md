@@ -76,3 +76,24 @@ first adapter draft incorrectly annotated the Kit-side value as a float.
 **Boundary decision:** `KitXRSample` carries the mapped core confidence enum and
 the staged-core smoke test assigns it through the real pybind11 property. The
 core contract is coherent; no core change is proposed.
+
+## F-007 — Omniverse adapter namespace was inconsistent (resolved 2026-08-23)
+
+**Observed:** The first extension used the flat ID `miskeyed.xr.adapter` and
+Python package `miskeyed_kit_xr`, obscuring which code is Kit-specific and
+breaking the established `miskeyed.kit.<module>` convention.
+
+**Boundary decision:** The extension ID is now `miskeyed.kit.xr_agent`, and all
+of its Python implementation lives below `miskeyed.kit.xr_agent`. Parent
+directories remain PEP 420 namespace packages so the separately staged
+`miskeyed.xr.agent` core can coexist without path-order tricks.
+
+## F-008 — Windows CI did not initialize the MSVC environment (resolved 2026-08-23)
+
+**Observed:** The CI preset selects Ninja. Although GitHub's Windows image has
+Visual Studio installed, Ninja cannot compile until `cl.exe` and the matching
+SDK environment are exported into the job.
+
+**Boundary decision:** The Windows matrix leg now runs the standard
+`ilammy/msvc-dev-cmd` setup action before CMake configure. Linux remains
+unchanged, and both platforms continue through the identical CMake preset.

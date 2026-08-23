@@ -24,7 +24,8 @@ jobs:
         run: test -x "$KIT_ROOT/kit/kit" && test -x "$KIT_PYTHON"
 
       - name: Ensure Kit Python can run tests
-        run: "$KIT_PYTHON" -m pip install --disable-pip-version-check pytest
+        run: >-
+          "$KIT_PYTHON" -m pip install --disable-pip-version-check pytest
 
       - name: Configure against Kit Python
         run: >-

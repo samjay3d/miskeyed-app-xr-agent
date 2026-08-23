@@ -1,7 +1,7 @@
 """Exercise the staged native core through the adapter, as Kit will import it."""
 
 from miskeyed.xr import agent as core
-from miskeyed_kit_xr.adapter import KitXRAdapter, KitXRBridge, KitXRSample
+from miskeyed.kit.xr_agent.adapter import KitXRAdapter, KitXRBridge, KitXRSample
 
 
 adapter = KitXRAdapter(KitXRBridge("ci.kit-owned-placeholder", object()), core)

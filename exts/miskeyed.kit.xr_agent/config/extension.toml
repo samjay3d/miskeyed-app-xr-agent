@@ -1,5 +1,5 @@
 [package]
-title = "Miskeyed Kit XR Adapter"
+title = "Miskeyed Kit XR Agent"
 description = "Adapts Kit-owned XR state to miskeyed-xr-agent"
 version = "0.1.0"
 category = "XR"
@@ -8,4 +8,4 @@ category = "XR"
 "omni.kit.xr.system.openxr" = {}
 
 [[python.module]]
-name = "miskeyed_kit_xr.extension"
+name = "miskeyed.kit.xr_agent.extension"

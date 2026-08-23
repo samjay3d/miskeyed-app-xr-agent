@@ -6,6 +6,10 @@ The smallest practical Omniverse Kit integration harness for the
 Kit owns OpenXR, rendering, USD, and scene queries. This repository owns only
 the host adapter and application wiring.
 
+All Omniverse-specific Python code follows the project namespace convention:
+`miskeyed.kit.<module>`. This extension is `miskeyed.kit.xr_agent`; portable
+core code remains under the separately owned `miskeyed.xr.agent` package.
+
 ## Current milestone
 
 The build now fetches the reviewed core revision, compiles its real Python
@@ -83,6 +87,10 @@ honest second CI tier: attach a self-hosted Linux runner labeled
 runner also needs `KIT_PYTHON` set to the executable shipped with that SDK. The
 job builds with Kit's Python ABI and boots the staged app for 100 updates. A
 Rift S hardware acceptance run remains a physical test, not a mocked CI claim.
+
+The Windows job explicitly initializes the Visual Studio developer environment
+before using the Ninja preset. This is required because installing Visual Studio
+on a GitHub runner does not by itself place `cl.exe` on the job's `PATH`.
 
 Look for `[miskeyed.xr]` in the console. `XR runtime bridge discovered` means
 the Kit-owned bridge was found. A missing bridge is reported as an integration

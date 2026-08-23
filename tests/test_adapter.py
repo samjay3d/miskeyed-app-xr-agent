@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from miskeyed_kit_xr.adapter import (
+from miskeyed.kit.xr_agent.adapter import (
     IntegrationContractError,
     KitXRAdapter,
     KitXRBridge,
