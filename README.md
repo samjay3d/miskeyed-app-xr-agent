@@ -8,32 +8,50 @@ the host adapter and application wiring.
 
 ## Current milestone
 
-This initial scaffold boots a Kit experience, enables Kit's XR extensions, and
-runs an intentionally strict runtime probe. The probe logs which Kit XR Python
-module and interface are present. It **does not** create an OpenXR instance or
-session and it does not manufacture tracking data. The exact public pose API
-must be confirmed against the Kit build used with the Rift S before the adapter
-is connected; that is the first recorded integration finding.
+The build now fetches the reviewed core revision, compiles its real Python
+extension, and stages it beside the Kit application. The runtime probe logs
+which Kit XR Python module and interface are present. It **does not** create an
+OpenXR instance or session and it does not manufacture tracking data. The exact
+public pose API must still be confirmed against the Kit build used with the
+Rift S before the adapter is connected.
 
 ## Prerequisites
 
 * An Omniverse Kit SDK checkout/build (`kit` or `kit.exe`)
 * An Oculus Rift S configured as the active OpenXR runtime
-* A sibling checkout of `miskeyed-xr-agent` on the integration branch
+* CMake 3.24+, a C++20 compiler, Python development headers, and internet access
+* An extracted Omniverse Kit SDK whose license has been accepted
 
-Bootstrap the core library from source (never vendor it here):
+## Configure and build
 
-```bash
-git clone --branch codex/create-new-repository-miskeyed-xr-agent \
-  https://github.com/samjay3d/miskeyed-xr-agent.git ../miskeyed-xr-agent
-./scripts/use-local-core.sh ../miskeyed-xr-agent
-```
-
-Launch with the Kit SDK:
+The reproducible default fetches the exact reviewed core commit:
 
 ```bash
-/path/to/kit apps/miskeyed.xr.kit
+cmake -S . -B build -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
 ```
+
+During joint development, use the branch checkout directly instead:
+
+```bash
+cmake -S . -B build \
+  -DMISKEYED_XR_AGENT_SOURCE=/absolute/path/to/miskeyed-xr-agent \
+  -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk
+cmake --build build --parallel
+```
+
+Download Kit SDK from NVIDIA's official
+[Kit App Template/NGC workflow](https://github.com/NVIDIA-Omniverse/kit-app-template#quick-start).
+The SDK cannot be silently downloaded by CMake because NVIDIA requires the
+developer to accept its product terms. `KIT_ROOT` makes that one unavoidable
+manual step explicit; everything owned by this repository/core is built and
+staged by CMake.
+
+Launch the staged app with `cmake --build build --target launch`. The native
+core module must be built with the same Python ABI as the selected Kit SDK; if
+Kit embeds a different Python, configure CMake with
+`-DPython_EXECUTABLE=/path/to/kit/python`.
 
 Look for `[miskeyed.xr]` in the console. `XR runtime bridge discovered` means
 the Kit-owned bridge was found. A missing bridge is reported as an integration
@@ -49,4 +67,3 @@ Oculus Rift S -> OpenXR runtime -> Kit XR lifecycle -> KitXRAdapter
 Controller aim, raycasts, text grounding, visualization, and preview/undo are
 deliberately deferred until live head tracking is proven. See
 [`INTEGRATION_FINDINGS.md`](INTEGRATION_FINDINGS.md) for the live contract log.
-

@@ -5,7 +5,7 @@ version = "0.1.0"
 category = "XR"
 
 [dependencies]
-"omni.kit.xr.core" = {}
+"omni.kit.xr.system.openxr" = {}
 
 [[python.module]]
 name = "miskeyed_kit_xr.extension"

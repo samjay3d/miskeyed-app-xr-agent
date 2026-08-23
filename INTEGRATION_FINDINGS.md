@@ -17,19 +17,40 @@ documented API and record the extension/version here.
 **Core proposal:** None. Host lifecycle ownership is intentionally outside
 `miskeyed-xr-agent`.
 
-## F-002 — Core construction contract cannot be verified offline (open)
+## F-002 — Core construction contract unavailable (resolved 2026-08-23)
 
-**Observed:** The requested source branch is not present in this workspace and
-network access to GitHub is unavailable. In particular, the constructor shapes
-for `SpatialIntentFrame`, pose samples, reference-space identity/generation,
-opaque targets, and `IntentTimeline` cannot be validated.
+**Observed:** The branch now publicly exposes `miskeyed.xr.agent`, including
+`SpatialIntentFrame`, `ReferenceSpace`, pose/ray values, `resolve_target`, and
+`IntentTimeline`. Revision `ea1c6106c9e85b3d23491c403e47a6e4d6818fb0` was
+reviewed and is the reproducible CMake default.
 
-**Boundary decision:** Do not copy or guess these domain types. The development
-bootstrap installs the sibling source checkout editable, and the adapter's
-`load_core_contract()` fails with an actionable error unless the real package
-exports the required symbols.
+**Boundary decision:** CMake compiles that core revision directly, while
+`MISKEYED_XR_AGENT_SOURCE` selects a live sibling checkout. `KitXRSample` is an
+adapter input DTO, not a duplicate portable domain model. Translation constructs
+the core's real types and preserves Kit time/space values verbatim.
 
-**Core proposal:** Export the integration types from one documented public
-module and provide a host-adapter example that explicitly carries host timestamp,
-reference-space ID, and reference-space generation.
+**Core result:** The requested single public module and host integration example
+now exist. No core change is proposed for this finding.
 
+## F-003 — Kit SDK acquisition requires product-term acceptance (open)
+
+**Observed:** NVIDIA distributes current production Kit SDK releases through
+NGC and its Kit App Template workflow. It is not appropriate for an unattended
+CMake configure to accept those terms for the developer.
+
+**Boundary decision:** The developer supplies one `KIT_ROOT` path. CMake fetches
+and builds the open-source core, stages the app, and provides a `launch` target.
+The launch target fails early and explains the missing SDK rather than claiming
+to have installed Kit.
+
+## F-004 — Core assumes pybind11 must be installed (open)
+
+**Observed:** The core's Python option unconditionally calls
+`find_package(pybind11 CONFIG REQUIRED)`, even when a parent CMake project has
+already provided the official `pybind11` targets with `FetchContent`.
+
+**Boundary decision:** This app supplies a minimal package-discovery bridge to
+the already-created upstream targets. This is build integration only and does
+not belong in the runtime adapter.
+
+**Core proposal:** Skip `find_package` when `pybind11::module` already exists.
