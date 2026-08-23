@@ -63,6 +63,16 @@ no local `.pyi` file.
 the official `pip_prebundle`. It does not describe or duplicate core types; it
 only identifies that the typed/native API is owned by the installed wheel.
 
+## F-012 — Local extensions stage under `exts`, not `extsbuild` (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32626746750` completed wheel installation, stub
+generation, and the Kit build. Launch then could not resolve
+`miskeyed.kit.xr_agent` because the command exposed registry links from
+`extsbuild` but not local projects staged under the release `exts` directory.
+
+**Boundary decision:** Launch includes both `$KIT_ROOT/exts` for this app's
+extensions and `$KIT_ROOT/extsbuild`/`extscache` for Kit-provided dependencies.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter

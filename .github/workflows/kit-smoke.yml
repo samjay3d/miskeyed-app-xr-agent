@@ -54,6 +54,7 @@ jobs:
         run: |
           set -o pipefail
           "$KIT_EXECUTABLE" "$KIT_APP" \
+            --ext-folder "$KIT_ROOT/exts" \
             --ext-folder "$KIT_ROOT/extsbuild" \
             --ext-folder "$KIT_ROOT/extscache" \
             --/miskeyed/kit/xr_agent/ciSmoke=true \
