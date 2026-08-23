@@ -16,6 +16,8 @@ from .adapter import (
 
 class MiskeyedXRExtension(omni.ext.IExt):
     def on_startup(self, ext_id: str) -> None:
+        self._ext_id = ext_id
+        self._ci_completed = False
         self._adapter = None
         self._update_subscription = None
         self._debug_panel = None
@@ -77,6 +79,9 @@ class MiskeyedXRExtension(omni.ext.IExt):
             self._debug_panel.show_grounded(self._adapter.core.to_dict(event))
 
     def _run_ci_smoke(self, _event) -> None:
+        if self._ci_completed:
+            return
+        self._ci_completed = True
         self._update_subscription = None
         if self._debug_panel is not None:
             self._debug_panel.destroy()
@@ -90,7 +95,9 @@ class MiskeyedXRExtension(omni.ext.IExt):
             carb.log_error(f"[miskeyed.kit.xr_agent] KIT_CI_FAIL: {exc}")
             omni.kit.app.get_app().post_quit(1)
             raise
-        omni.kit.app.get_app().post_quit(0)
+        omni.kit.app.get_app().get_extension_manager().set_extension_enabled_immediate(
+            self._ext_id, False
+        )
 
     def on_shutdown(self) -> None:
         # Dropping borrowed interfaces is all we own; Kit shuts down OpenXR.
@@ -99,3 +106,4 @@ class MiskeyedXRExtension(omni.ext.IExt):
         if carb.settings.get_settings().get_as_bool("/miskeyed/kit/xr_agent/ciSmoke"):
             carb.log_info("[miskeyed.kit.xr_agent] KIT_CI_UNLOAD")
             print("KIT_CI_UNLOAD", flush=True)
+            omni.kit.app.get_app().post_quit(0)

@@ -133,6 +133,12 @@ experience, but Kit's default stdout filtering omitted `carb.log_info` records,
 so the shell assertions could not see the pass/unload markers. CI lifecycle
 markers are now emitted to both Carb logging and unbuffered stdout.
 
+**Unload follow-up:** Run `32627420656` produced `CORE_WHEEL` and a correct
+`KIT_CI_PASS`, proving the PyPI/Kit/USD path, but `post_quit()` did not produce
+the required unload marker. The smoke now disables its own extension through
+Kit's extension manager; `on_shutdown` emits `KIT_CI_UNLOAD` and only then asks
+the application to exit. A completion guard prevents duplicate update events.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
