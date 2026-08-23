@@ -52,6 +52,17 @@ gate.
 **Core result:** PyPI publishes a CPython 3.12 manylinux x86-64 wheel compatible
 with Kit 110.2's Python 3.12 runtime.
 
+## F-011 — Kit stub generation requires a local marker (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32626616830` proved that Kit's Python 3.12.13 selected
+and installed `miskeyed-xr-agent==0.1.0`, then the Kit App Template post-build
+stub generator rejected the dependency-only extension because its payload had
+no local `.pyi` file.
+
+**Boundary decision:** The dependency extension links one marker stub alongside
+the official `pip_prebundle`. It does not describe or duplicate core types; it
+only identifies that the typed/native API is owned by the installed wheel.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
