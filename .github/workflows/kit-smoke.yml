@@ -61,15 +61,14 @@ jobs:
       - name: Package with NVIDIA Kit App Template
         working-directory: ${{ runner.temp }}/kat
         run: |
-          # repo_package restricts its internal package name to alphanumeric,
-          # period, and underscore characters. Release filenames are renamed
-          # separately after KAT has produced the package.
-          package_name="miskeyed_xr_agent_${APP_VERSION}_${{ matrix.platform }}"
-          package_name="${package_name//-/_}"
+          # Use KAT's configured project name. repo test --from-package uses
+          # that same identity to locate the archive, so an unrelated --name
+          # override would package successfully but make the supported package
+          # test unable to find the exact output.
           if [[ '${{ matrix.platform }}' == linux-* ]]; then
-            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} package --name "$package_name"
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} package
           else
-            ./${{ matrix.repo }} package --name "$package_name"
+            ./${{ matrix.repo }} package
           fi
       - name: Validate exact fat package and create release manifest
         run: |
