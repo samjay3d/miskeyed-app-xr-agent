@@ -1,5 +1,9 @@
 """Exercise the released PyPI core through the adapter, as Kit imports it."""
 
+import os
+
+os.environ["MISKEYED_KIT_ADAPTER_ONLY"] = "1"
+
 from miskeyed.xr import agent as core
 from importlib.metadata import version
 from miskeyed.kit.xr_agent.adapter import KitXRAdapter, KitXRBridge, KitXRSample

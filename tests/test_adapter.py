@@ -1,6 +1,9 @@
+import os
 from types import SimpleNamespace
 
 import pytest
+
+os.environ["MISKEYED_KIT_ADAPTER_ONLY"] = "1"
 
 from miskeyed.kit.xr_agent.adapter import (
     IntegrationContractError,
