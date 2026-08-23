@@ -128,6 +128,11 @@ extension now supplies an `extend_path` namespace initializer so
 `miskeyed.xr.agent` from the prebundle and `miskeyed.kit.xr_agent` coexist when
 loaded in either order.
 
+**Logging follow-up:** Run `32627347757` loaded and exited the headless
+experience, but Kit's default stdout filtering omitted `carb.log_info` records,
+so the shell assertions could not see the pass/unload markers. CI lifecycle
+markers are now emitted to both Carb logging and unbuffered stdout.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter

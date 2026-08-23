@@ -17,12 +17,14 @@ from .adapter import KitXRAdapter, KitXRBridge, KitXRSample
 def run() -> None:
     """Ground one real core frame against a prim in Kit's active USD context."""
 
-    carb.log_info(
-        "[miskeyed.kit.xr_agent] CORE_WHEEL "
+    wheel_details = (
+        "CORE_WHEEL "
         f"python={sys.version} executable={sys.executable} "
         f"abi={sys.implementation.cache_tag} os={platform.system()} "
         f"arch={platform.machine()} module={core.__file__}"
     )
+    carb.log_info(f"[miskeyed.kit.xr_agent] {wheel_details}")
+    print(wheel_details, flush=True)
     context = omni.usd.get_context()
     context.new_stage()
     stage = context.get_stage()
@@ -86,4 +88,6 @@ def run() -> None:
     result = core.to_dict(event)
     if result["spatial_context"]["target"]["host_id"] != target_path:
         raise RuntimeError("grounded request did not preserve the USD SdfPath")
-    carb.log_info(f"[miskeyed.kit.xr_agent] KIT_CI_PASS {result}")
+    success = f"KIT_CI_PASS {result}"
+    carb.log_info(f"[miskeyed.kit.xr_agent] {success}")
+    print(success, flush=True)

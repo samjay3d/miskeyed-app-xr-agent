@@ -98,3 +98,4 @@ class MiskeyedXRExtension(omni.ext.IExt):
         self._update_subscription = None
         if carb.settings.get_settings().get_as_bool("/miskeyed/kit/xr_agent/ciSmoke"):
             carb.log_info("[miskeyed.kit.xr_agent] KIT_CI_UNLOAD")
+            print("KIT_CI_UNLOAD", flush=True)
