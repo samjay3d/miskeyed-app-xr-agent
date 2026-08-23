@@ -26,6 +26,30 @@ creates a stage through Kit's live `omni.usd` context, grounds a real core
 * CMake 3.24+, Python 3.10+, and internet access
 * An extracted Omniverse Kit SDK whose license has been accepted
 
+## Install from PyPI
+
+The PyPI wheel is a platform-independent launcher and Kit extension. It has no
+runtime dependency on the core wheel in the user's system Python: Kit's own
+dependency build installs `miskeyed-xr-agent==0.1.0` into `pip_prebundle` using
+Kit's Python ABI.
+
+```bash
+python -m pip install miskeyed-app-xr-agent
+miskeyed-kit-xr doctor
+miskeyed-kit-xr install-kit
+miskeyed-kit-xr launch
+```
+
+`install-kit` checks out the pinned official NVIDIA Kit App Template, writes
+the application-owned extension metadata, and invokes NVIDIA's `repo` build.
+Kit is not embedded in or redistributed by this wheel. NVIDIA currently ships
+the Kit SDK targeted by this app for Linux and Windows; macOS can install and
+test the pure Python launcher, but `install-kit` exits with a clear unsupported
+platform message.
+
+Tags named `v*` publish the pure `py3-none-any` wheel through PyPI Trusted
+Publishing after the Linux, macOS, and Windows package matrix passes.
+
 ## Configure and build
 
 For the shortest local path (Ninja required):

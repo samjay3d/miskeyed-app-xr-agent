@@ -139,6 +139,18 @@ the required unload marker. The smoke now disables its own extension through
 Kit's extension manager; `on_shutdown` emits `KIT_CI_UNLOAD` and only then asks
 the application to exit. A completion guard prevents duplicate update events.
 
+## F-017 — PyPI launcher must not install core into system Python (resolved 2026-08-23)
+
+**Observed:** The app distribution originally declared `miskeyed-xr-agent` as
+a normal wheel dependency even though Kit uses its own Python ABI and already
+installs the core through `pip_prebundle`.
+
+**Boundary decision:** The app wheel has no runtime `Requires-Dist`. Its launcher
+materializes app-owned Kit metadata and invokes NVIDIA's official provisioning
+tool. Kit's target Python exclusively installs `miskeyed-xr-agent==0.1.0`.
+Package CI builds and tests the pure wheel on Linux, macOS, and Windows; actual
+Kit provisioning remains tested on supported Linux CI.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
