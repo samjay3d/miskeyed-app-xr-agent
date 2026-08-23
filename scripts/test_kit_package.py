@@ -17,10 +17,10 @@ def main() -> None:
     args = parser.parse_args()
 
     executable_relative = Path("kit/kit.exe" if args.platform.startswith("windows") else "kit/kit")
-    # Launch the production dependency root, not a smaller headless dependency
-    # graph. The setting only replaces physical XR input with the deterministic
-    # USD/core smoke after all production dependencies have resolved.
-    experience_relative = Path("apps/miskeyed.xr.kit")
+    # The archive was resolved from the production experience. Use its packaged
+    # CI companion for deterministic validation on runners without an NVIDIA
+    # GPU or physical XR runtime.
+    experience_relative = Path("apps/miskeyed.xr.ci.kit")
     with tempfile.TemporaryDirectory(prefix="miskeyed-kat-package-") as temporary:
         install = Path(temporary)
         with zipfile.ZipFile(args.archive) as package:
@@ -42,7 +42,6 @@ def main() -> None:
                 str(executable),
                 str(experience),
                 "--no-window",
-                "--/miskeyed/kit/xr_agent/ciSmoke=true",
             ],
             cwd=root,
             env=environment,

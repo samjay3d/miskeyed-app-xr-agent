@@ -5,6 +5,9 @@
 composition. `apps/miskeyed.xr.kit` is the production dependency root. CI
 materializes this repository under KAT's `source/`, runs `repo build`, runs the
 extension precacher, and creates a fat package with `repo package`.
+The production experience is the release dependency root. Its deterministic CI
+companion is also precached so the exact archive can be exercised on hosted
+runners without requiring an NVIDIA GPU or physical OpenXR device.
 
 The former approach—archiving an NGC SDK directory and manually deciding which
 directories form a runtime—is not supported. No code in this repository prunes

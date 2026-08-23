@@ -88,3 +88,6 @@ def test_prepare_excludes_internal_nvidia_repo_dependencies(tmp_path):
     prepare(repo, template, "1.2.3")
 
     assert not (deps / "repo-deps-nv.packman.xml").exists()
+    prepared_config = (template / "repo.toml").read_text(encoding="utf-8")
+    assert "source/apps/miskeyed.xr.kit" in prepared_config
+    assert "source/apps/miskeyed.xr.ci.kit" in prepared_config

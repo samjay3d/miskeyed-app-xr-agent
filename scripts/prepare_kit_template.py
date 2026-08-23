@@ -34,7 +34,7 @@ def prepare(repo: Path, template: Path, version: str) -> None:
     config = config.replace('name = "kit-sdk"', 'name = "miskeyed-app-xr-agent"', 1)
     config, count = re.subn(
         r'(?s)(\[repo_precache_exts\].*?\napps\s*=\s*)\[.*?\]',
-        r'\1["${root}/source/apps/miskeyed.xr.kit"]',
+        r'\1["${root}/source/apps/miskeyed.xr.kit", "${root}/source/apps/miskeyed.xr.ci.kit"]',
         config,
         count=1,
     )
