@@ -60,7 +60,17 @@ jobs:
           fi
       - name: Package with NVIDIA Kit App Template
         working-directory: ${{ runner.temp }}/kat
-        run: ./${{ matrix.repo }} package --name "miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}"
+        run: |
+          # repo_package restricts its internal package name to alphanumeric,
+          # period, and underscore characters. Release filenames are renamed
+          # separately after KAT has produced the package.
+          package_name="miskeyed_xr_agent_${APP_VERSION}_${{ matrix.platform }}"
+          package_name="${package_name//-/_}"
+          if [[ '${{ matrix.platform }}' == linux-* ]]; then
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} package --name "$package_name"
+          else
+            ./${{ matrix.repo }} package --name "$package_name"
+          fi
       - name: Validate exact fat package and create release manifest
         run: |
           archive="$(find "$RUNNER_TEMP/kat/_build/packages" -type f -name '*.zip' ! -name '*thin*' -print -quit)"
@@ -71,7 +81,12 @@ jobs:
           python scripts/manifest_kit_package.py --archive "$output" --version "$APP_VERSION" --platform '${{ matrix.platform }}' --output "release/miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}.json"
       - name: Test the exact packaged application
         working-directory: ${{ runner.temp }}/kat
-        run: ./${{ matrix.repo }} test --from-package
+        run: |
+          if [[ '${{ matrix.platform }}' == linux-* ]]; then
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} test --from-package
+          else
+            ./${{ matrix.repo }} test --from-package
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: kit-package-${{ matrix.platform }}
