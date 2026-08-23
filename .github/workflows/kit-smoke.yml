@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: kit-package-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   # This KAT production commit pins kit-kernel 110.1.2+production for PB 26h1.
   KIT_TEMPLATE_REVISION: 1b93a81c778d2387fe7b5288e0bcfdce66c2b239
@@ -43,8 +47,16 @@ jobs:
       - name: Build and resolve production extension closure
         working-directory: ${{ runner.temp }}/kat
         run: |
-          ./${{ matrix.repo }} build --release
-          ./${{ matrix.repo }} precache_exts
+          if [[ '${{ matrix.platform }}' == linux-* ]]; then
+            # setup-python adds its own lib directory to LD_LIBRARY_PATH. That
+            # shadows libraries used by Packman's NVIDIA Python bootstrap and
+            # made its stdlib zlib module unavailable on the hosted runner.
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} build --release
+            env -u LD_LIBRARY_PATH ./${{ matrix.repo }} precache_exts
+          else
+            ./${{ matrix.repo }} build --release
+            ./${{ matrix.repo }} precache_exts
+          fi
       - name: Package with NVIDIA Kit App Template
         working-directory: ${{ runner.temp }}/kat
         run: ./${{ matrix.repo }} package --name "miskeyed-xr-agent-${APP_VERSION}-${{ matrix.platform }}"

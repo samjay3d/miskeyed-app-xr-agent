@@ -5,6 +5,7 @@ import zipfile
 import pytest
 
 from miskeyed_app_xr_agent import cli
+from scripts.prepare_kit_template import prepare
 
 
 def test_platform_contract():
@@ -63,3 +64,27 @@ def test_bad_checksum_leaves_no_install(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="checksum"):
         cli.install(root)
     assert not (root / "0.1.0/linux-x86_64").exists()
+
+
+def test_prepare_excludes_internal_nvidia_repo_dependencies(tmp_path):
+    repo = tmp_path / "repo"
+    template = tmp_path / "template"
+    (repo / "apps").mkdir(parents=True)
+    (repo / "exts").mkdir()
+    pip = repo / "kit-template/tools/deps/pip.toml"
+    pip.parent.mkdir(parents=True)
+    pip.write_text("# app dependencies\n", encoding="utf-8")
+    (template / "source").mkdir(parents=True)
+    deps = template / "tools/deps"
+    deps.mkdir(parents=True)
+    (deps / "repo-deps-nv.packman.xml").write_text("internal", encoding="utf-8")
+    (deps / "pip.toml").write_text("# KAT dependencies\n", encoding="utf-8")
+    (template / "tools/VERSION.md").write_text("old\n", encoding="utf-8")
+    (template / "premake5.lua").write_text("", encoding="utf-8")
+    (template / "repo.toml").write_text(
+        'name = "kit-sdk"\n[repo_precache_exts]\napps = []\n', encoding="utf-8"
+    )
+
+    prepare(repo, template, "1.2.3")
+
+    assert not (deps / "repo-deps-nv.packman.xml").exists()

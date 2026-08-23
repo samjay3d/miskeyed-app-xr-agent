@@ -9,6 +9,13 @@ from pathlib import Path
 
 
 def prepare(repo: Path, template: Path, version: str) -> None:
+    # Production KAT revisions can retain NVIDIA-internal repo tooling in the
+    # public source tree.  It is not part of an external application's build
+    # or packaging graph and its packages are not available from the public
+    # Packman remotes (for example, repo_docs).  Keep the public KAT toolchain
+    # authoritative while excluding that internal-only bootstrap input.
+    (template / "tools/deps/repo-deps-nv.packman.xml").unlink(missing_ok=True)
+
     source = template / "source"
     shutil.rmtree(source / "apps", ignore_errors=True)
     shutil.rmtree(source / "extensions", ignore_errors=True)
