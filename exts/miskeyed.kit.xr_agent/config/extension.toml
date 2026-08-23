@@ -11,4 +11,4 @@ category = "XR"
 "omni.ui" = { optional = true }
 
 [[python.module]]
-name = "miskeyed.kit.xr_agent.extension"
+name = "miskeyed.kit.xr_agent"

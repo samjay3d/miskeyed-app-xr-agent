@@ -105,6 +105,17 @@ update callback ran. The minimal CI experience had no loop extension.
 experience and enable stdout explicitly. The extension remains responsible for
 requesting exit after its grounding pass.
 
+## F-016 — Kit extension entry point must use the package module (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32627036195` reported the extension as started but did
+not instantiate `MiskeyedXRExtension`; no smoke callback or lifecycle log ran.
+The manifest named the implementation submodule directly rather than following
+Kit App Template's package-entry convention.
+
+**Boundary decision:** The manifest loads `miskeyed.kit.xr_agent`, whose
+`__init__.py` exports the `IExt` class when running under Kit. Hardware-free
+adapter unit tests can still import the package without Omniverse installed.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
