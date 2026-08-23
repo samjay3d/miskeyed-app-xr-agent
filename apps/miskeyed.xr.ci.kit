@@ -1,0 +1,13 @@
+[package]
+title = "Miskeyed XR Agent Kit CI"
+description = "Headless real-Kit integration test experience"
+version = "0.1.0"
+
+[dependencies]
+"omni.usd" = {}
+"miskeyed.kit.xr_agent" = {}
+
+[settings]
+app.name = "Miskeyed XR Agent Kit CI"
+app.exts.folders.'++' = ["${app}/../exts"]
+renderer.enabled = false

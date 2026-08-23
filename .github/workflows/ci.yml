@@ -1,4 +1,4 @@
-name: CI
+name: Core CI
 
 on:
   push:
@@ -9,23 +9,24 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
-    name: Build and test (${{ matrix.os }}, Python ${{ matrix.python }})
+  core-ci:
+    name: core-ci (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2022]
-        python: ["3.10", "3.12"]
 
     steps:
-      - name: Check out app
+      - name: Check out integration repository
         uses: actions/checkout@v4
 
-      - name: Select Python
-        uses: actions/setup-python@v5
+      - name: Check out XR agent core
+        uses: actions/checkout@v4
         with:
-          python-version: ${{ matrix.python }}
+          repository: samjay3d/miskeyed-xr-agent
+          ref: codex/create-new-repository-miskeyed-xr-agent
+          path: _core
 
       # Ninja needs an initialized MSVC environment; GitHub's Windows image
       # installs Visual Studio but does not put cl.exe on PATH automatically.
@@ -33,22 +34,17 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install test dependency
-        run: python -m pip install --disable-pip-version-check pytest
+      - name: Configure host-independent core
+        run: >-
+          cmake -S _core -B build/core -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DMISKEYED_XR_BUILD_OPENXR=OFF
+          -DMISKEYED_XR_BUILD_PYTHON=OFF
+          -DMISKEYED_XR_BUILD_EXAMPLES=ON
+          -DBUILD_TESTING=ON
 
-      - name: Configure
-        run: cmake --preset ci
+      - name: Build host-independent core
+        run: cmake --build build/core --parallel 2
 
-      - name: Build and stage
-        run: cmake --build --preset ci --parallel 2
-
-      - name: Test adapter and staged core
-        run: ctest --preset ci
-
-      - name: Upload runnable stage
-        if: matrix.python == '3.12'
-        uses: actions/upload-artifact@v4
-        with:
-          name: miskeyed-kit-stage-${{ matrix.os }}
-          path: build/ci/stage
-          if-no-files-found: error
+      - name: Test host-independent core
+        run: ctest --test-dir build/core --output-on-failure

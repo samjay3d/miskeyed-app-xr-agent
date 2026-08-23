@@ -32,16 +32,15 @@ the core's real types and preserves Kit time/space values verbatim.
 **Core result:** The requested single public module and host integration example
 now exist. No core change is proposed for this finding.
 
-## F-003 — Kit SDK acquisition requires product-term acceptance (open)
+## F-003 — Kit SDK acquisition requires product-term acceptance (resolved 2026-08-23)
 
 **Observed:** NVIDIA distributes current production Kit SDK releases through
 NGC and its Kit App Template workflow. It is not appropriate for an unattended
 CMake configure to accept those terms for the developer.
 
-**Boundary decision:** The developer supplies one `KIT_ROOT` path. CMake fetches
-and builds the open-source core, stages the app, and provides a `launch` target.
-The launch target fails early and explains the missing SDK rather than claiming
-to have installed Kit.
+**Boundary decision:** Local developers may supply `KIT_ROOT`. In CI, the
+official NVIDIA Kit App Template tooling provisions the runtime as a supported
+job step. Kit availability is expected; provisioning failure fails `kit-ci`.
 
 ## F-004 — Core assumes pybind11 must be installed (open)
 
@@ -55,17 +54,28 @@ not belong in the runtime adapter.
 
 **Core proposal:** Skip `find_package` when `pybind11::module` already exists.
 
-## F-005 — Public CI cannot redistribute or accept Kit SDK terms (open)
+## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
 and core but do not contain the licensed Kit SDK, an NVIDIA GPU, an OpenXR
 runtime, or a Rift S.
 
-**Boundary decision:** CI has two explicit tiers. Hosted Linux/Windows jobs
-compile and exercise the staged native core. A manually dispatched self-hosted
-runner labeled `omniverse-kit` boots the real Kit application. Live tracking
-remains a documented physical hardware gate; CI never substitutes pose mocks
-and reports that as headset validation.
+**Boundary decision:** `core-ci` builds the core checkout alone on Linux and
+Windows. `kit-ci` provisions official Kit on a hosted runner, builds against its
+Python ABI, launches Kit headless, loads the extension, uses the live
+`omni.usd` context, grounds a core frame to `/World/Target`, and exits cleanly.
+Live tracking remains a physical hardware gate, not a reason to omit Kit CI.
+
+## F-009 — Headless Kit needs a deterministic integration experience (resolved 2026-08-23)
+
+**Observed:** The production app enables OpenXR and expects hardware, which is
+not the correct entry point for a headless scene-context integration check.
+
+**Boundary decision:** `miskeyed.xr.ci.kit` is a real Kit experience with USD
+and the extension but no XR runtime dependency. A one-shot update callback
+creates a USD cube in Kit's context, raycasts its world bound, calls the real
+core `resolve_target` and `IntentTimeline`, checks the opaque SdfPath, then asks
+Kit to quit. The production experience continues to own the OpenXR path.
 
 ## F-006 — Pointing confidence is categorical, not numeric (resolved 2026-08-23)
 

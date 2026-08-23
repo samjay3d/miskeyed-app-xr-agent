@@ -1,31 +1,49 @@
-name: Licensed Kit SDK smoke test
+name: Kit CI
 
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# This intentionally runs only when requested on an organization/user-managed
-# machine where NVIDIA terms have been accepted and Kit is already installed.
 jobs:
-  kit-smoke:
-    runs-on: [self-hosted, linux, x64, omniverse-kit]
-    timeout-minutes: 15
-    env:
-      KIT_ROOT: ${{ vars.KIT_ROOT }}
-      KIT_PYTHON: ${{ vars.KIT_PYTHON }}
+  kit-ci:
+    name: kit-ci (official NVIDIA Kit)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
 
     steps:
       - name: Check out app
         uses: actions/checkout@v4
 
-      - name: Verify licensed Kit installation
-        run: test -x "$KIT_ROOT/kit/kit" && test -x "$KIT_PYTHON"
+      - name: Check out official NVIDIA Kit App Template
+        uses: actions/checkout@v4
+        with:
+          repository: NVIDIA-Omniverse/kit-app-template
+          ref: 483e364a4176f102f2d3c3aaf9f301a103d61d69
+          path: _kit_app_template
 
-      - name: Ensure Kit Python can run tests
-        run: >-
-          "$KIT_PYTHON" -m pip install --disable-pip-version-check pytest
+      - name: Provision official Kit SDK
+        working-directory: _kit_app_template
+        run: |
+          mkdir -p source/apps source/extensions
+          cp ../apps/miskeyed.xr.ci.kit source/apps/
+          cp -R ../exts/miskeyed.kit.xr_agent source/extensions/
+          ./repo.sh build
+
+      - name: Locate provisioned Kit runtime
+        shell: bash
+        run: |
+          kit_executable="$(find _kit_app_template/_build -type f -path '*/kit/kit' -perm -111 -print -quit)"
+          test -n "$kit_executable"
+          kit_root="$(dirname "$(dirname "$kit_executable")")"
+          kit_python="$(find "$(dirname "$kit_executable")" -type f \( -name python3 -o -name python \) -perm -111 -print -quit)"
+          test -n "$kit_python"
+          echo "KIT_EXECUTABLE=$kit_executable" >> "$GITHUB_ENV"
+          echo "KIT_ROOT=$kit_root" >> "$GITHUB_ENV"
+          echo "KIT_PYTHON=$kit_python" >> "$GITHUB_ENV"
 
       - name: Configure against Kit Python
         run: >-
@@ -36,13 +54,15 @@ jobs:
       - name: Build and stage
         run: cmake --build --preset ci --parallel 2
 
-      - name: Test staged core with Kit Python ABI
-        run: ctest --preset ci
-
-      - name: Boot Kit app for 100 updates
-        run: >-
-          "$KIT_ROOT/kit/kit" build/ci/stage/apps/miskeyed.xr.kit
-          --ext-folder build/ci/stage/exts
-          --/app/python/extraPaths/0="${{ github.workspace }}/build/ci/stage/python"
-          --/app/quitAfter=100
-          --/app/fastShutdown=true
+      - name: Launch Kit, load extension, exercise USD grounding, and exit
+        shell: bash
+        run: |
+          set -o pipefail
+          "$KIT_EXECUTABLE" build/ci/stage/apps/miskeyed.xr.ci.kit \
+            --ext-folder build/ci/stage/exts \
+            --ext-folder "$KIT_ROOT/extscache" \
+            --/app/python/extraPaths/0="${{ github.workspace }}/build/ci/stage/python" \
+            --/miskeyed/kit/xr_agent/ciSmoke=true \
+            --no-window | tee kit-ci.log
+          grep -F "KIT_CI_PASS" kit-ci.log
+          grep -F "KIT_CI_UNLOAD" kit-ci.log

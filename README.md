@@ -12,12 +12,12 @@ core code remains under the separately owned `miskeyed.xr.agent` package.
 
 ## Current milestone
 
-The build now fetches the reviewed core revision, compiles its real Python
-extension, and stages it beside the Kit application. The runtime probe logs
-which Kit XR Python module and interface are present. It **does not** create an
-OpenXR instance or session and it does not manufacture tracking data. The exact
-public pose API must still be confirmed against the Kit build used with the
-Rift S before the adapter is connected.
+The build fetches the reviewed core revision, compiles its real Python
+extension, and stages it beside a supported Kit application. Kit CI provisions
+the official NVIDIA runtime, launches it headless, loads this extension,
+creates a stage through Kit's live `omni.usd` context, grounds a real core
+`SpatialIntentFrame` against a USD cube, submits `move this there` through
+`IntentTimeline`, verifies the `/World/Target` result, unloads, and exits.
 
 ## Prerequisites
 
@@ -73,20 +73,24 @@ cmake --preset dev -DKIT_ROOT=/absolute/path/to/extracted-kit-sdk \
 cmake --build build/dev --target launch
 ```
 
-## What CI proves
+## Supported CI targets
 
-The normal `CI` workflow runs on clean GitHub-hosted Linux and Windows machines
-with Python 3.10 and 3.12. It fetches the pinned core, compiles the actual native
-binding, stages the app, runs adapter tests, imports the staged package, creates
-a real core `SpatialIntentFrame`, and uploads the stage as an artifact.
+`core-ci` checks out `miskeyed-xr-agent` separately on clean Linux and Windows
+runners, disables OpenXR and Python bindings, builds its native spatial library
+and host example, and runs the core tests. It does not configure this Kit app or
+resolve any Kit/Omniverse package. That is the dependency-boundary proof.
 
-Kit SDK itself is licensed software and a GitHub-hosted runner cannot accept
-NVIDIA's terms for you. The manual `Licensed Kit SDK smoke test` workflow is the
-honest second CI tier: attach a self-hosted Linux runner labeled
-`omniverse-kit`, set the repository variable `KIT_ROOT`, and dispatch it. That
-runner also needs `KIT_PYTHON` set to the executable shipped with that SDK. The
-job builds with Kit's Python ABI and boots the staged app for 100 updates. A
-Rift S hardware acceptance run remains a physical test, not a mocked CI claim.
+`kit-ci` is a required implementation target, not a placeholder. It uses the
+official NVIDIA Kit App Template tooling to provision Kit, locates Kit's runtime
+and Python, compiles this application against that ABI, launches the headless CI
+experience, and requires the extension to complete a Kit/OpenUSD grounding pass
+before requesting a clean process exit. Any provisioning, extension-load,
+scene-context, grounding, or shutdown error fails the job.
+
+The headless job intentionally exercises Kit and OpenUSD without claiming XR
+hardware tracking. Rift S tracking remains a separate physical acceptance test;
+the production experience enables Kit's OpenXR extension and never creates a
+second session.
 
 The Windows job explicitly initializes the Visual Studio developer environment
 before using the Ninja preset. This is required because installing Visual Studio
