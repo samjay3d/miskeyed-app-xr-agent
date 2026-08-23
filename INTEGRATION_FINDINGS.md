@@ -121,6 +121,13 @@ adapter unit tests can still import the package without Omniverse installed.
 The package now unconditionally exports its Kit entry point. Hardware-free
 tests explicitly request adapter-only import before loading the package.
 
+**Namespace follow-up:** The PyPI wheel initializes `miskeyed` as a PEP 420
+namespace before Kit adds the main extension's module path. Run `32627268951`
+showed Kit's extension importer did not rediscover the late path. The Kit
+extension now supplies an `extend_path` namespace initializer so
+`miskeyed.xr.agent` from the prebundle and `miskeyed.kit.xr_agent` coexist when
+loaded in either order.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter
