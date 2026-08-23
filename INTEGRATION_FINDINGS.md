@@ -95,6 +95,16 @@ OpenXR (and UI) explicitly. The headless experience requires USD only and runs
 the core-wheel grounding check without initializing XR graphics. This keeps the
 production dependency exact without pretending a hosted runner is a headset.
 
+## F-015 — Headless experience needs an update loop (resolved 2026-08-23)
+
+**Observed:** Kit CI run `32626977050` loaded the wheel dependency, USD, and the
+main extension without XR graphics, then the process ended before the one-shot
+update callback ran. The minimal CI experience had no loop extension.
+
+**Boundary decision:** Require `omni.kit.loop-default` in the headless
+experience and enable stdout explicitly. The extension remains responsible for
+requesting exit after its grounding pass.
+
 ## F-005 — Public CI did not exercise Kit (resolved 2026-08-23)
 
 **Observed:** GitHub-hosted runners can build the complete open-source adapter

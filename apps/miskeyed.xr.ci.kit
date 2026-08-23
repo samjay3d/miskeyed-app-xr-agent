@@ -4,6 +4,7 @@ description = "Headless real-Kit integration test experience"
 version = "0.1.0"
 
 [dependencies]
+"omni.kit.loop-default" = {}
 "omni.usd" = {}
 "miskeyed.xr.python_deps" = {}
 "miskeyed.kit.xr_agent" = {}
@@ -12,3 +13,4 @@ version = "0.1.0"
 app.name = "Miskeyed XR Agent Kit CI"
 app.exts.folders.'++' = ["${app}/../exts"]
 renderer.enabled = false
+app.enableStdoutOutput = true
